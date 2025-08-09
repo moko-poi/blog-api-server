@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/moko-poi/blog-api-server/pkg/models"
+	"github.com/moko-poi/blog-api-server/internal/domain"
 )
 
 var (
@@ -16,11 +16,11 @@ var (
 // BlogStore defines the interface for blog storage operations
 // Following Mat Ryer's pattern of simple, focused interfaces
 type BlogStore interface {
-	Create(ctx context.Context, blog *models.Blog) error
-	GetByID(ctx context.Context, id string) (*models.Blog, error)
-	GetAll(ctx context.Context) ([]*models.Blog, error)
-	GetByAuthor(ctx context.Context, author string) ([]*models.Blog, error)
-	Update(ctx context.Context, id string, blog *models.Blog) error
+	Create(ctx context.Context, blog *domain.Blog) error
+	GetByID(ctx context.Context, id string) (*domain.Blog, error)
+	GetAll(ctx context.Context) ([]*domain.Blog, error)
+	GetByAuthor(ctx context.Context, author string) ([]*domain.Blog, error)
+	Update(ctx context.Context, id string, blog *domain.Blog) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -28,18 +28,18 @@ type BlogStore interface {
 // Suitable for development and testing, but not for production
 type MemoryBlogStore struct {
 	mu    sync.RWMutex
-	blogs map[string]*models.Blog
+	blogs map[string]*domain.Blog
 }
 
 // NewMemoryBlogStore creates a new in-memory blog store
 func NewMemoryBlogStore() *MemoryBlogStore {
 	return &MemoryBlogStore{
-		blogs: make(map[string]*models.Blog),
+		blogs: make(map[string]*domain.Blog),
 	}
 }
 
 // Create stores a new blog
-func (s *MemoryBlogStore) Create(ctx context.Context, blog *models.Blog) error {
+func (s *MemoryBlogStore) Create(ctx context.Context, blog *domain.Blog) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -48,7 +48,7 @@ func (s *MemoryBlogStore) Create(ctx context.Context, blog *models.Blog) error {
 }
 
 // GetByID retrieves a blog by its ID
-func (s *MemoryBlogStore) GetByID(ctx context.Context, id string) (*models.Blog, error) {
+func (s *MemoryBlogStore) GetByID(ctx context.Context, id string) (*domain.Blog, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -63,11 +63,11 @@ func (s *MemoryBlogStore) GetByID(ctx context.Context, id string) (*models.Blog,
 }
 
 // GetAll retrieves all blogs
-func (s *MemoryBlogStore) GetAll(ctx context.Context) ([]*models.Blog, error) {
+func (s *MemoryBlogStore) GetAll(ctx context.Context) ([]*domain.Blog, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	blogs := make([]*models.Blog, 0, len(s.blogs))
+	blogs := make([]*domain.Blog, 0, len(s.blogs))
 	for _, blog := range s.blogs {
 		// Return copies to prevent modification
 		blogCopy := *blog
@@ -78,11 +78,11 @@ func (s *MemoryBlogStore) GetAll(ctx context.Context) ([]*models.Blog, error) {
 }
 
 // GetByAuthor retrieves all blogs by a specific author
-func (s *MemoryBlogStore) GetByAuthor(ctx context.Context, author string) ([]*models.Blog, error) {
+func (s *MemoryBlogStore) GetByAuthor(ctx context.Context, author string) ([]*domain.Blog, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var blogs []*models.Blog
+	var blogs []*domain.Blog
 	for _, blog := range s.blogs {
 		if blog.Author == author {
 			// Return a copy to prevent modification
@@ -95,7 +95,7 @@ func (s *MemoryBlogStore) GetByAuthor(ctx context.Context, author string) ([]*mo
 }
 
 // Update updates an existing blog
-func (s *MemoryBlogStore) Update(ctx context.Context, id string, blog *models.Blog) error {
+func (s *MemoryBlogStore) Update(ctx context.Context, id string, blog *domain.Blog) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

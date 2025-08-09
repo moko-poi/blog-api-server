@@ -7,7 +7,7 @@ import (
 
 	"github.com/moko-poi/blog-api-server/internal/logger"
 	"github.com/moko-poi/blog-api-server/internal/store"
-	"github.com/moko-poi/blog-api-server/pkg/models"
+	"github.com/moko-poi/blog-api-server/internal/domain"
 )
 
 // handleHealthz returns a simple health check
@@ -30,7 +30,7 @@ func handleBlogsCreate(log *logger.Logger, blogStore store.BlogStore) http.Handl
 			return
 		}
 
-		req, problems, err := decodeValid[models.CreateBlogRequest](r)
+		req, problems, err := decodeValid[domain.CreateBlogRequest](r)
 		if err != nil {
 			if problems != nil {
 				response := ErrorResponse{
@@ -46,7 +46,7 @@ func handleBlogsCreate(log *logger.Logger, blogStore store.BlogStore) http.Handl
 			return
 		}
 
-		blog := models.NewBlog(req)
+		blog := domain.NewBlog(req)
 		if err := blogStore.Create(r.Context(), blog); err != nil {
 			log.Error(r.Context(), "failed to create blog", "error", err)
 			response := ErrorResponse{Error: "Failed to create blog"}
@@ -69,7 +69,7 @@ func handleBlogsGet(log *logger.Logger, blogStore store.BlogStore) http.Handler 
 
 		author := r.URL.Query().Get("author")
 
-		var blogs []*models.Blog
+		var blogs []*domain.Blog
 		var err error
 
 		if author != "" {
@@ -146,7 +146,7 @@ func handleBlogUpdate(log *logger.Logger, blogStore store.BlogStore, id string, 
 		return
 	}
 
-	req, problems, err := decodeValid[models.UpdateBlogRequest](r)
+	req, problems, err := decodeValid[domain.UpdateBlogRequest](r)
 	if err != nil {
 		if problems != nil {
 			response := ErrorResponse{
