@@ -71,37 +71,48 @@ type Validator interface {
 ## プロジェクト構成
 
 ```
-blog-service/
+blog-api-server/
 ├── cmd/
 │   └── server/
 │       └── main.go              # アプリケーションエントリーポイント
 ├── internal/
 │   ├── api/
 │   │   ├── handlers.go          # HTTPハンドラー
+│   │   ├── handlers_test.go     # ハンドラーテスト
 │   │   ├── middleware.go        # HTTPミドルウェア
+│   │   ├── middleware_test.go   # ミドルウェアテスト
 │   │   ├── routes.go            # ルート定義
+│   │   ├── routes_test.go       # ルートテスト
 │   │   ├── server.go            # サーバー設定とライフサイクル
-│   │   └── validation.go        # リクエスト/レスポンスバリデーション
+│   │   ├── validation.go        # リクエスト/レスポンスバリデーション
+│   │   └── validation_test.go   # バリデーションテスト
 │   ├── config/
 │   │   └── config.go            # 設定管理
+│   ├── domain/
+│   │   ├── blog.go              # ドメインモデル
+│   │   └── blog_test.go         # ドメインモデルテスト
 │   ├── logger/
 │   │   └── logger.go            # 構造化ログ
 │   └── store/
-│       ├── memory.go            # インメモリストレージ実装
-│       └── store.go             # ストレージインターフェース
-├── pkg/
-│   └── models/
-│       └── blog.go              # ドメインモデル
-├── tests/
-│   └── integration/
-│       └── api_test.go          # 統合テスト
-├── deployments/
-│   ├── docker/
-│   │   └── Dockerfile           # Dockerビルド設定
-│   └── k8s/                     # Kubernetesマニフェスト（将来実装）
+│       ├── store.go             # ストレージインターフェース
+│       └── store_test.go        # ストレージテスト
+├── scripts/
+│   ├── setup.sh                 # 開発環境セットアップスクリプト
+│   ├── dev.sh                   # 開発サーバー起動スクリプト
+│   ├── test.sh                  # テスト実行スクリプト
+│   └── build.sh                 # ビルドスクリプト
+├── .vscode/                     # VS Code設定
+├── Dockerfile                   # 本番用Dockerイメージ
+├── Dockerfile.dev               # 開発用Dockerイメージ
+├── docker-compose.dev.yml       # 開発用Docker Compose
+├── .air.toml                    # ホットリロード設定
+├── .env                         # 環境変数
+├── .env.example                 # 環境変数テンプレート
+├── .gitignore                   # Git除外設定
 ├── go.mod
 ├── go.sum
 ├── Makefile                     # ビルドと開発タスク
+├── DEVELOPMENT.md               # 開発者向けドキュメント
 └── README.md
 ```
 
@@ -109,7 +120,7 @@ blog-service/
 
 ### 前提条件
 
-- Go 1.21以降
+- Go 1.24.4以降
 - Make（Makefileターゲット使用のため、オプション）
 - Docker（コンテナ化のため、オプション）
 
@@ -118,137 +129,67 @@ blog-service/
 1. **リポジトリのクローン**
    ```bash
    git clone <repository-url>
-   cd blog-service
+   cd blog-api-server
    ```
 
-2. **依存関係のインストール**
+2. **開発環境のセットアップ**
    ```bash
-   make deps
+   make setup
+   # または
+   ./scripts/setup.sh
    ```
 
 3. **テスト実行**
    ```bash
    make test
-   make test-integration
+   make test-cover
    ```
 
-4. **サービス起動**
+4. **サービス起動（ホットリロード付き）**
    ```bash
-   make run-dev
+   make dev
    ```
 
    サービスは `http://localhost:8080` で起動します
 
+### Docker開発環境
+
+```bash
+# 開発環境を起動（ホットリロード付き）
+docker compose -f docker-compose.dev.yml up
+
+# バックグラウンドで起動
+docker compose -f docker-compose.dev.yml up -d
+```
+
 ### 環境変数
 
-| 変数 | デフォルト | 説明 |
-|------|-----------|---# Blog Service
+| 変数名 | デフォルト | 説明 |
+|--------|-----------|------|
+| `HOST` | `localhost` | サーバーホスト |
+| `PORT` | `8080` | サーバーポート |
+| `LOG_LEVEL` | `debug` | ログレベル (debug, info, warn, error) |
+| `READ_TIMEOUT` | `10s` | HTTP読み取りタイムアウト |
+| `WRITE_TIMEOUT` | `10s` | HTTP書き込みタイムアウト |
+| `IDLE_TIMEOUT` | `120s` | HTTPアイドルタイムアウト |
+| `DEV_MODE` | `true` | 開発モード |
 
-A production-ready HTTP service for managing blog posts, built following Mat Ryer's 13 years of Go HTTP service best practices.
+詳細は `.env.example` を参照してください。
 
-## Features
+## 🛠️ 利用可能なコマンド
 
-- **RESTful API** for blog CRUD operations
-- **Structured logging** with configurable levels
-- **Graceful shutdown** with proper signal handling
-- **Comprehensive testing** including integration tests
-- **Input validation** with detailed error messages
-- **Middleware support** (logging, CORS, panic recovery, rate limiting)
-- **Health checks** for monitoring and readiness probes
-- **Docker support** with multi-stage builds
-- **Production-ready** configuration management
+### Make コマンド
 
-## API Endpoints
+| コマンド | 説明 |
+|----------|------|
+| `make help` | 利用可能なコマンド一覧を表示 |
+| `make setup` | 初期開発環境セットアップ |
+| `make dev` | ホットリロード付きで開発サーバーを起動 |
+| `make build` | 本番用バイナリをビルド |
+| `make build-all` | 複数プラットフォーム向けにビルド |
+| `make test` | 全テストを実行 |
+| `make test-cover` | カバレッジ付きでテストを実行 |
+| `make audit` | 包括的なコード品質監査 |
+| `make clean` | ビルド成果物をクリーンアップ |
 
-### Health Checks
-- `GET /healthz` - Health check endpoint
-- `GET /readyz` - Readiness check endpoint
-
-### Blog Management
-- `GET /api/v1/blogs` - List all blogs
-- `GET /api/v1/blogs?author=<name>` - Filter blogs by author
-- `POST /api/v1/blogs` - Create a new blog
-- `GET /api/v1/blogs/{id}` - Get a specific blog
-- `PUT /api/v1/blogs/{id}` - Update a blog
-- `DELETE /api/v1/blogs/{id}` - Delete a blog
-
-## Project Structure
-
-```
-blog-service/
-├── cmd/
-│   └── server/
-│       └── main.go              # Application entry point
-├── internal/
-│   ├── api/
-│   │   ├── handlers.go          # HTTP handlers
-│   │   ├── middleware.go        # HTTP middleware
-│   │   ├── routes.go            # Route definitions
-│   │   ├── server.go            # Server setup and lifecycle
-│   │   └── validation.go        # Request/response validation
-│   ├── config/
-│   │   └── config.go            # Configuration management
-│   ├── logger/
-│   │   └── logger.go            # Structured logging
-│   └── store/
-│       ├── memory.go            # In-memory storage implementation
-│       └── store.go             # Storage interface
-├── pkg/
-│   └── models/
-│       └── blog.go              # Domain models
-├── tests/
-│   └── integration/
-│       └── api_test.go          # Integration tests
-├── deployments/
-│   ├── docker/
-│   │   └── Dockerfile           # Docker build configuration
-│   └── k8s/                     # Kubernetes manifests (future)
-├── go.mod
-├── go.sum
-├── Makefile                     # Build and development tasks
-└── README.md
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Go 1.21 or later
-- Make (optional, for using Makefile targets)
-- Docker (optional, for containerization)
-
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd blog-service
-   ```
-
-2. **Install dependencies**
-   ```bash
-   make deps
-   ```
-
-3. **Run tests**
-   ```bash
-   make test
-   make test-integration
-   ```
-
-4. **Run the service**
-   ```bash
-   make run-dev
-   ```
-
-   The service will start on `http://localhost:8080`
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `localhost` | Server host |
-| `PORT` | `8080` | Server port |
-| `LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
-| `READ_TIMEOUT` | `10` | HTTP read timeout in seconds |
-|
+詳細な開発ガイドは [DEVELOPMENT.md](DEVELOPMENT.md) を参照してください。
