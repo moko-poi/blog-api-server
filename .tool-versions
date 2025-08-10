@@ -1,0 +1,20 @@
+# Tool versions managed by asdf
+# Install tools: asdf install
+
+# Programming Languages
+golang 1.24.4
+
+# Development Tools
+golangci-lint 1.62.2
+lefthook 1.10.0
+
+# Container Tools
+docker 27.4.1
+docker-compose 2.31.0
+
+# Node.js for potential frontend tooling
+nodejs 22.13.1
+
+# Additional tools
+make 4.4.1
+git 2.48.1

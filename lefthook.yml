@@ -1,0 +1,122 @@
+# Lefthook Git hooks configuration
+# https://github.com/evilmartians/lefthook
+
+# Minimum supported version
+min_version: 1.10.0
+
+# Output configuration
+output:
+  - summary
+  - success
+  - failure
+  - skips
+
+colors: true
+no_tty: false
+
+# Pre-commit hooks
+pre-commit:
+  parallel: true
+  commands:
+    # Go formatting
+    go-fmt:
+      glob: "*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
+
+    # Go imports
+    go-imports:
+      glob: "*.go" 
+      run: goimports -w {staged_files}
+      stage_fixed: true
+
+    # Go mod tidy
+    go-mod-tidy:
+      glob: "{go.mod,go.sum}"
+      run: go mod tidy
+
+    # Go vet
+    go-vet:
+      glob: "*.go"
+      run: go vet ./...
+
+    # Golangci-lint
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD~1
+
+    # Go tests
+    go-test:
+      glob: "*.go"
+      run: go test -race -short ./...
+
+    # Spell checking
+    misspell:
+      glob: "*.{go,md,yml,yaml,json}"
+      run: misspell -error {staged_files}
+
+    # YAML/JSON validation
+    yaml-lint:
+      glob: "*.{yml,yaml}"
+      run: yamllint -d relaxed {staged_files}
+
+    # Docker file linting
+    hadolint:
+      glob: "Dockerfile*"
+      run: hadolint {staged_files}
+
+# Pre-push hooks
+pre-push:
+  parallel: false
+  commands:
+    # Run comprehensive tests
+    test-all:
+      run: make test
+
+    # Run security audit
+    go-security:
+      run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+    # Build verification
+    build-check:
+      run: make build
+
+    # Full golangci-lint
+    golangci-lint-full:
+      run: golangci-lint run
+
+# Commit message validation
+commit-msg:
+  commands:
+    # Conventional commits validation
+    commitizen:
+      run: |
+        if ! echo "{1}" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,50}'; then
+          echo "❌ Commit message should follow conventional commits format:"
+          echo "   <type>[optional scope]: <description>"
+          echo ""
+          echo "   Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+          echo "   Example: feat(api): add new blog endpoint"
+          exit 1
+        fi
+
+# Post-checkout hooks
+post-checkout:
+  commands:
+    # Dependencies check
+    deps-check:
+      run: |
+        if [ -f go.mod ]; then
+          echo "🔍 Checking Go dependencies..."
+          go mod download
+          go mod tidy
+        fi
+
+# Scripts configuration
+scripts:
+  "install":
+    runner: bash
+
+skip_output:
+  - meta
+  - execution

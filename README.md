@@ -13,6 +13,8 @@ Mat Ryer氏の13年間のGoでのHTTPサービス開発のベストプラクテ�
 - **ヘルスチェック** （モニタリングと準備完了プローブ）
 - **Docker対応** （マルチステージビルド）
 - **本番対応** の設定管理
+- **現代的開発ツール** （golangci-lint、lefthook、asdf）
+- **Git hooks** による自動品質チェック
 
 ## Mat Ryerのベストプラクティス実装ポイント
 
@@ -102,6 +104,9 @@ blog-api-server/
 │   ├── test.sh                  # テスト実行スクリプト
 │   └── build.sh                 # ビルドスクリプト
 ├── .vscode/                     # VS Code設定
+├── .tool-versions               # asdf ツールバージョン定義
+├── .golangci.yml                # golangci-lint設定
+├── lefthook.yml                 # Git hooks設定
 ├── Dockerfile                   # 本番用Dockerイメージ
 ├── Dockerfile.dev               # 開発用Dockerイメージ
 ├── docker-compose.dev.yml       # 開発用Docker Compose
@@ -123,6 +128,7 @@ blog-api-server/
 - Go 1.24.4以降
 - Make（Makefileターゲット使用のため、オプション）
 - Docker（コンテナ化のため、オプション）
+- asdf（ツールバージョン管理のため、推奨）
 
 ### ローカル開発
 
@@ -132,11 +138,13 @@ blog-api-server/
    cd blog-api-server
    ```
 
-2. **開発環境のセットアップ**
+2. **ツールのインストール（推奨）**
    ```bash
+   # asdfを使用する場合（推奨）
+   asdf install
+
+   # または手動でセットアップ
    make setup
-   # または
-   ./scripts/setup.sh
    ```
 
 3. **テスト実行**
@@ -189,7 +197,60 @@ docker compose -f docker-compose.dev.yml up -d
 | `make build-all` | 複数プラットフォーム向けにビルド |
 | `make test` | 全テストを実行 |
 | `make test-cover` | カバレッジ付きでテストを実行 |
+| `make lint` | golangci-lintでコード解析 |
+| `make lint-fix` | golangci-lintで自動修正 |
 | `make audit` | 包括的なコード品質監査 |
+| `make hooks-run` | Git hooksを手動実行 |
 | `make clean` | ビルド成果物をクリーンアップ |
+
+## 🔧 開発ツール
+
+このプロジェクトでは現代的な開発ツールを使用してコード品質と開発効率を向上させています。
+
+### asdf ツールバージョン管理
+
+`.tool-versions` ファイルで開発ツールのバージョンを統一管理：
+
+```bash
+# asdfでツールをインストール
+asdf install
+
+# 個別ツールのインストール
+asdf install golang 1.24.4
+asdf install golangci-lint 1.62.2
+```
+
+### golangci-lint 包括的リンター
+
+50以上のリンターでコード品質をチェック：
+
+```bash
+# リント実行
+make lint
+
+# 自動修正付きリント
+make lint-fix
+
+# 設定ファイル: .golangci.yml
+```
+
+### lefthook Git hooks管理
+
+Git操作時に自動でコード品質チェックを実行：
+
+```bash
+# Git hooks設定
+make setup-hooks
+
+# hooks手動実行
+make hooks-run
+
+# 設定ファイル: lefthook.yml
+```
+
+**自動実行されるチェック:**
+- コミット時: フォーマット、テスト、リント
+- プッシュ時: 包括テスト、セキュリティ監査
+- コミットメッセージ: 規約チェック
 
 詳細な開発ガイドは [DEVELOPMENT.md](DEVELOPMENT.md) を参照してください。

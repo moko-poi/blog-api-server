@@ -74,8 +74,33 @@ vet: ## Run go vet
 	go vet ./...
 
 .PHONY: lint
-lint: ## Run static analysis with staticcheck
-	@echo "Running static analysis..."
+lint: golangci-lint ## Run static analysis with golangci-lint
+
+.PHONY: golangci-lint
+golangci-lint: ## Run golangci-lint
+	@echo "Running golangci-lint..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		golangci-lint run; \
+	fi
+
+.PHONY: lint-fix
+lint-fix: ## Run golangci-lint with auto-fix
+	@echo "Running golangci-lint with auto-fix..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --fix; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		golangci-lint run --fix; \
+	fi
+
+.PHONY: staticcheck
+staticcheck: ## Run static analysis with staticcheck (legacy)
+	@echo "Running static analysis with staticcheck..."
 	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
 
 .PHONY: audit
@@ -129,12 +154,47 @@ docker-run: docker-build ## Run Docker container
 
 # Development environment
 .PHONY: setup
-setup: deps ## Initial project setup
+setup: deps install-tools setup-hooks ## Initial project setup
 	@echo "Setting up development environment..."
 	@echo "✅ Dependencies installed"
+	@echo "✅ Development tools installed"
+	@echo "✅ Git hooks configured"
 	@echo "✅ Run 'make dev' to start development server"
 	@echo "✅ Run 'make test' to run tests"
 	@echo "✅ Run 'make audit' for code quality checks"
+
+.PHONY: install-tools
+install-tools: ## Install development tools
+	@echo "Installing development tools..."
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "📦 Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2; \
+	fi
+	@if ! command -v lefthook >/dev/null 2>&1; then \
+		echo "📦 Installing lefthook..."; \
+		go install github.com/evilmartians/lefthook@v1.10.0; \
+	fi
+	@echo "✅ Development tools installed"
+
+.PHONY: setup-hooks
+setup-hooks: ## Setup Git hooks with lefthook
+	@echo "Setting up Git hooks..."
+	@if command -v lefthook >/dev/null 2>&1; then \
+		lefthook install; \
+		echo "✅ Git hooks configured with lefthook"; \
+	else \
+		echo "⚠️  lefthook not found. Run 'make install-tools' first"; \
+	fi
+
+.PHONY: hooks-run
+hooks-run: ## Run all pre-commit hooks manually
+	@echo "Running pre-commit hooks..."
+	@if command -v lefthook >/dev/null 2>&1; then \
+		lefthook run pre-commit; \
+	else \
+		echo "❌ lefthook not installed. Run 'make install-tools' first"; \
+		exit 1; \
+	fi
 
 # Check if required tools are installed
 .PHONY: check-tools
